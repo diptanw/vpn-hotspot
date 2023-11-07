@@ -1,0 +1,63 @@
+version: "3.7"
+services:
+  gluetun:
+    image: qmcgaw/gluetun:v3
+    expose:
+      - 8888/tcp # HTTP proxy
+    environment:
+      VPN_SERVICE_PROVIDER: custom
+      VPN_TYPE: wireguard
+      WIREGUARD_ENDPOINT_IP: ${WIREGUARD_ENDPOINT_IP}
+      WIREGUARD_ENDPOINT_PORT: ${WIREGUARD_ENDPOINT_PORT}
+      WIREGUARD_PUBLIC_KEY: ${WIREGUARD_PUBLIC_KEY}
+      WIREGUARD_PRIVATE_KEY: ${WIREGUARD_PRIVATE_KEY}
+      WIREGUARD_PRESHARED_KEY: ${WIREGUARD_PRESHARED_KEY}
+      WIREGUARD_ADDRESS: ${WIREGUARD_ADDRESS}
+      HTTPPROXY: on
+      SHADOWSOCKS: off
+      SHADOWSOCKS_PASSWORD:
+      TZ: Europe/Stockholm
+      DOT: off
+      HTTP_CONTROL_SERVER_LOG: off
+      FIREWALL: on
+      UPDATER_PERIOD: 3h
+    sysctls:
+      - net.ipv4.ip_forward=1
+    restart: unless-stopped
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+
+  hotspot:
+    build:
+      context: .
+    image: diptanw/vpn-hotspot:latest
+    network_mode: "service:gluetun"
+    depends_on:
+      - gluetun
+    privileged: true
+    sysctls:
+      - net.ipv4.ip_forward=1
+      - net.ipv6.conf.all.disable_ipv6=1
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      INTERFACE: wlan0
+      OUTGOINGS: tun0
+      WPA_PASSPHRASE: ${SERVER_ADMIN_PSK}
+      SSID: hotspot
+    restart: unless-stopped
+
+  qbittorrent:
+    image: lscr.io/linuxserver/qbittorrent:latest
+    environment:
+      TZ: Europe/Stockholm
+      WEBUI_PORT: 8080
+    depends_on:
+      - gluetun
+    volumes:
+      - ./qbit/qBittorrent.conf:/config/qBittorrent/qBittorrent.conf
+      - /media/drive/downloads:/downloads
+    expose:
+      - 8080
+    restart: unless-stopped
