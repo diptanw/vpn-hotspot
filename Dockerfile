@@ -10,7 +10,7 @@ LABEL org.opencontainers.image.title="Docker VPN Hotspot" \
       org.opencontainers.image.source="https://github.com/diptanw/rpi-server/vpn-hotspot"
 
 RUN --mount=type=cache,target=/var/cache/apk apk add --no-cache \
-    bash hostapd iptables dhcp docker iw
+    bash hostapd iptables dhcp docker-cli iw
 
 RUN touch /var/lib/dhcp/dhcpd.leases
 ADD hotspot.sh /bin/hotspot
