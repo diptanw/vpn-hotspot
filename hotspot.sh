@@ -69,8 +69,6 @@ ignore_broadcast_ssid=0
 wmm_enabled=1
 ieee80211ac=1
 require_vht=1
-ieee80211d=0
-ieee80211h=0
 EOF
 }
 
@@ -93,6 +91,8 @@ function setup_nat() {
     sysctl -w net.ipv4.ip_dynaddr=1
     sysctl -w net.ipv4.ip_forward=1
 
+    iptables -P FORWARD ACCEPT
+
     for int in $(echo $OUTGOINGS | tr ',' ' '); do
         echo "Setting iptables for outgoing traffics on $int..."
         iptables -D FORWARD -i $INTERFACE -o $int -j ACCEPT 2>/dev/null || true
@@ -108,11 +108,11 @@ function setup_nat() {
 
 sleep 3
 
-echo "External IP Address: $(wget http://ipecho.net/plain -O - -q ; echo)"
-
 setup_hostapd
 setup_interface
 setup_nat
 setup_dhcp
+
+echo "External IP Address: $(wget http://ipecho.net/plain -O - -q ; echo)"
 
 /usr/sbin/hostapd /etc/hostapd.conf
